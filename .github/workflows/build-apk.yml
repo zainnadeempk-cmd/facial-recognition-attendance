@@ -58,13 +58,16 @@ jobs:
         # Accept licenses
         yes | "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" --sdk_root="$ANDROID_SDK_ROOT" --licenses
     
-        # Ensure buildozer's expected SDK path points to the SDK we installed
-        mkdir -p "$HOME/.buildozer/android/platform"
-        ln -sfn "$ANDROID_SDK_ROOT" "$HOME/.buildozer/android/platform/android-sdk"
-        
-        # CRITICAL FIX: Create symlink for old-style tools path that Buildozer expects
+        # CRITICAL: Create the exact directory structure Buildozer expects
         mkdir -p "$HOME/.buildozer/android/platform/android-sdk"
+        
+        # Create symlinks for both old and new SDK paths
+        ln -sfn "$ANDROID_SDK_ROOT" "$HOME/.buildozer/android/platform/android-sdk"
         ln -sfn "$ANDROID_SDK_ROOT/cmdline-tools/latest" "$HOME/.buildozer/android/platform/android-sdk/tools"
+        
+        # Also create the legacy tools/bin structure
+        mkdir -p "$HOME/.buildozer/android/platform/android-sdk/tools/bin"
+        ln -sfn "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" "$HOME/.buildozer/android/platform/android-sdk/tools/bin/sdkmanager"
     
         # Add the installed build-tools directory to PATH so 'aidl' can be found
         if [ -d "$ANDROID_SDK_ROOT/build-tools/30.0.3" ]; then
@@ -73,10 +76,18 @@ jobs:
           echo "$ANDROID_SDK_ROOT/build-tools/29.0.3" >> $GITHUB_PATH
         fi
     
-        # Debug: show where AIDL is (should be present)
-        echo "Listing build-tools and aidl:"
-        ls -la "$ANDROID_SDK_ROOT/build-tools" || true
-        find "$ANDROID_SDK_ROOT" -type f -name aidl -exec ls -la {} \; || true
+        # Debug: show the directory structure
+        echo "Buildozer SDK structure:"
+        ls -la "$HOME/.buildozer/android/platform/android-sdk/" || true
+        ls -la "$HOME/.buildozer/android/platform/android-sdk/tools/" || true
+        ls -la "$HOME/.buildozer/android/platform/android-sdk/tools/bin/" || true
+        
+        # Verify sdkmanager exists
+        if [ -f "$HOME/.buildozer/android/platform/android-sdk/tools/bin/sdkmanager" ]; then
+          echo "sdkmanager found at expected path"
+        else
+          echo "sdkmanager NOT found at expected path"
+        fi
         
     - name: Install Python dependencies
       run: |
