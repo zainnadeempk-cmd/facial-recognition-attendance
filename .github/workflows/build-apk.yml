@@ -38,11 +38,14 @@ jobs:
         
         # Move into the expected layout - handle case where tools might be in different location
         mkdir -p "$ANDROID_SDK_ROOT/cmdline-tools/latest"
-        if [ -d "tools" ]; then
-          mv tools/* "$ANDROID_SDK_ROOT/cmdline-tools/latest/" || true
+        # Find the correct folder and move only its contents
+        if [ -d "cmdline-tools" ]; then
+          mv cmdline-tools/* "$ANDROID_SDK_ROOT/cmdline-tools/latest/"
+        elif [ -d "tools" ]; then
+          mv tools/* "$ANDROID_SDK_ROOT/cmdline-tools/latest/"
         else
-          # If tools directory doesn't exist, move everything from current directory
-          mv * "$ANDROID_SDK_ROOT/cmdline-tools/latest/" || true
+          echo "No cmdline-tools or tools directory found after unzipping"
+          exit 1
         fi
         
         # Export env vars for subsequent steps
