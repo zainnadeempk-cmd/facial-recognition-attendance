@@ -22,11 +22,48 @@ jobs:
         sudo apt-get update
         sudo apt-get install -y openjdk-8-jdk wget unzip zip squashfs-tools git python3-dev build-essential
         
-    - name: Install Android SDK
-      uses: android-actions/setup-android@v3
-      with:
-        api-level: 29
-        build-tools: 29.0.3
+    - name: Install Android SDK manually
+      run: |
+        # Set up Android SDK
+        export ANDROID_SDK_ROOT="$HOME/Android/Sdk"
+        mkdir -p "$ANDROID_SDK_ROOT"
+        
+        # Download command-line tools
+        cd /tmp
+        wget -q https://dl.google.com/android/repository/commandlinetools-linux-9477386_latest.zip
+        unzip -q commandlinetools-linux-9477386_latest.zip
+        
+        # Move to correct location
+        mkdir -p "$ANDROID_SDK_ROOT/cmdline-tools/latest"
+        mv cmdline-tools/* "$ANDROID_SDK_ROOT/cmdline-tools/latest/"
+        
+        # Set environment variables
+        echo "ANDROID_SDK_ROOT=$ANDROID_SDK_ROOT" >> $GITHUB_ENV
+        echo "ANDROID_HOME=$ANDROID_SDK_ROOT" >> $GITHUB_ENV
+        echo "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin" >> $GITHUB_PATH
+        echo "$ANDROID_SDK_ROOT/platform-tools" >> $GITHUB_PATH
+        
+        # Install specific versions that Buildozer expects
+        yes | "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" --sdk_root="$ANDROID_SDK_ROOT" "platform-tools" "platforms;android-29" "build-tools;29.0.3"
+        
+        # Accept licenses
+        yes | "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" --sdk_root="$ANDROID_SDK_ROOT" --licenses
+        
+        # Create Buildozer-compatible directory structure
+        mkdir -p "$HOME/.buildozer/android/platform/android-sdk"
+        ln -sfn "$ANDROID_SDK_ROOT" "$HOME/.buildozer/android/platform/android-sdk"
+        
+        # Create legacy tools structure
+        mkdir -p "$HOME/.buildozer/android/platform/android-sdk/tools/bin"
+        ln -sfn "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" "$HOME/.buildozer/android/platform/android-sdk/tools/bin/sdkmanager"
+        
+        # Add build-tools to PATH
+        echo "$ANDROID_SDK_ROOT/build-tools/29.0.3" >> $GITHUB_PATH
+        
+        # Verify installation
+        echo "Verifying Android SDK installation:"
+        ls -la "$ANDROID_SDK_ROOT/build-tools/" || true
+        find "$ANDROID_SDK_ROOT" -name "aidl" -type f || true
         
     - name: Install Python dependencies
       run: |
