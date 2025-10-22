@@ -65,9 +65,11 @@ jobs:
         ln -sfn "$ANDROID_SDK_ROOT" "$HOME/.buildozer/android/platform/android-sdk"
         ln -sfn "$ANDROID_SDK_ROOT/cmdline-tools/latest" "$HOME/.buildozer/android/platform/android-sdk/tools"
         
-        # Also create the legacy tools/bin structure
+        # Create the legacy tools/bin structure - check if it already exists
         mkdir -p "$HOME/.buildozer/android/platform/android-sdk/tools/bin"
-        ln -sfn "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" "$HOME/.buildozer/android/platform/android-sdk/tools/bin/sdkmanager"
+        if [ ! -f "$HOME/.buildozer/android/platform/android-sdk/tools/bin/sdkmanager" ]; then
+          ln -sfn "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" "$HOME/.buildozer/android/platform/android-sdk/tools/bin/sdkmanager"
+        fi
     
         # Add the installed build-tools directory to PATH so 'aidl' can be found
         if [ -d "$ANDROID_SDK_ROOT/build-tools/30.0.3" ]; then
