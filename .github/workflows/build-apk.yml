@@ -22,74 +22,11 @@ jobs:
         sudo apt-get update
         sudo apt-get install -y openjdk-8-jdk wget unzip zip squashfs-tools git python3-dev build-essential
         
-    - name: Install Android SDK command-line tools and build-tools
-      run: |
-        ANDROID_SDK_ROOT="$HOME/Android/Sdk"
-        mkdir -p "$ANDROID_SDK_ROOT"/cmdline-tools
-    
-        # Download latest command-line tools
-        cd /tmp
-        wget -q https://dl.google.com/android/repository/commandlinetools-linux-9477386_latest.zip -O cmdline-tools.zip
-        unzip -q cmdline-tools.zip
-    
-        # Move into the expected layout
-        mkdir -p "$ANDROID_SDK_ROOT/cmdline-tools/latest"
-        if [ -d "cmdline-tools" ]; then
-          mv cmdline-tools/* "$ANDROID_SDK_ROOT/cmdline-tools/latest/"
-        elif [ -d "tools" ]; then
-          mv tools/* "$ANDROID_SDK_ROOT/cmdline-tools/latest/"
-        else
-          echo "No cmdline-tools or tools directory found after unzipping"
-          exit 1
-        fi
-    
-        # Persist env vars for later steps
-        echo "ANDROID_SDK_ROOT=$ANDROID_SDK_ROOT" >> $GITHUB_ENV
-        echo "ANDROID_HOME=$ANDROID_SDK_ROOT" >> $GITHUB_ENV
-        echo "JAVA_HOME=/usr/lib/jvm/java-8-openjdk-amd64" >> $GITHUB_ENV
-    
-        # Add sdktool and platform-tools/build-tools to PATH for this workflow
-        echo "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin" >> $GITHUB_PATH
-        echo "$ANDROID_SDK_ROOT/platform-tools" >> $GITHUB_PATH
-    
-        # Install platform-tools, a platform and build-tools (contains aidl)
-        yes | "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" --sdk_root="$ANDROID_SDK_ROOT" "platform-tools" "platforms;android-29" "build-tools;29.0.3" "build-tools;30.0.3"
-    
-        # Accept licenses
-        yes | "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" --sdk_root="$ANDROID_SDK_ROOT" --licenses
-    
-        # CRITICAL: Create the exact directory structure Buildozer expects
-        mkdir -p "$HOME/.buildozer/android/platform/android-sdk"
-        
-        # Create symlinks for both old and new SDK paths
-        ln -sfn "$ANDROID_SDK_ROOT" "$HOME/.buildozer/android/platform/android-sdk"
-        ln -sfn "$ANDROID_SDK_ROOT/cmdline-tools/latest" "$HOME/.buildozer/android/platform/android-sdk/tools"
-        
-        # Create the legacy tools/bin structure - check if it already exists
-        mkdir -p "$HOME/.buildozer/android/platform/android-sdk/tools/bin"
-        if [ ! -f "$HOME/.buildozer/android/platform/android-sdk/tools/bin/sdkmanager" ]; then
-          ln -sfn "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" "$HOME/.buildozer/android/platform/android-sdk/tools/bin/sdkmanager"
-        fi
-    
-        # Add the installed build-tools directory to PATH so 'aidl' can be found
-        if [ -d "$ANDROID_SDK_ROOT/build-tools/30.0.3" ]; then
-          echo "$ANDROID_SDK_ROOT/build-tools/30.0.3" >> $GITHUB_PATH
-        elif [ -d "$ANDROID_SDK_ROOT/build-tools/29.0.3" ]; then
-          echo "$ANDROID_SDK_ROOT/build-tools/29.0.3" >> $GITHUB_PATH
-        fi
-    
-        # Debug: show the directory structure
-        echo "Buildozer SDK structure:"
-        ls -la "$HOME/.buildozer/android/platform/android-sdk/" || true
-        ls -la "$HOME/.buildozer/android/platform/android-sdk/tools/" || true
-        ls -la "$HOME/.buildozer/android/platform/android-sdk/tools/bin/" || true
-        
-        # Verify sdkmanager exists
-        if [ -f "$HOME/.buildozer/android/platform/android-sdk/tools/bin/sdkmanager" ]; then
-          echo "sdkmanager found at expected path"
-        else
-          echo "sdkmanager NOT found at expected path"
-        fi
+    - name: Install Android SDK
+      uses: android-actions/setup-android@v3
+      with:
+        api-level: 29
+        build-tools: 29.0.3
         
     - name: Install Python dependencies
       run: |
