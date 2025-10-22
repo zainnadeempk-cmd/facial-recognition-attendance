@@ -51,10 +51,8 @@ jobs:
         # Add sdktool and platform-tools/build-tools to PATH for this workflow
         echo "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin" >> $GITHUB_PATH
         echo "$ANDROID_SDK_ROOT/platform-tools" >> $GITHUB_PATH
-        # We add build-tools path(s) after installation below
     
         # Install platform-tools, a platform and build-tools (contains aidl)
-        # Install the build-tools versions Buildozer/Kivy often expects; adjust if your spec needs a different version
         yes | "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" --sdk_root="$ANDROID_SDK_ROOT" "platform-tools" "platforms;android-29" "build-tools;29.0.3" "build-tools;30.0.3"
     
         # Accept licenses
@@ -63,9 +61,12 @@ jobs:
         # Ensure buildozer's expected SDK path points to the SDK we installed
         mkdir -p "$HOME/.buildozer/android/platform"
         ln -sfn "$ANDROID_SDK_ROOT" "$HOME/.buildozer/android/platform/android-sdk"
+        
+        # CRITICAL FIX: Create symlink for old-style tools path that Buildozer expects
+        mkdir -p "$HOME/.buildozer/android/platform/android-sdk"
+        ln -sfn "$ANDROID_SDK_ROOT/cmdline-tools/latest" "$HOME/.buildozer/android/platform/android-sdk/tools"
     
-        # Add the installed build-tools directory to PATH so 'aidl' can be found by processes that use PATH
-        # Use the highest installed build-tools folder (adjust if you installed other versions)
+        # Add the installed build-tools directory to PATH so 'aidl' can be found
         if [ -d "$ANDROID_SDK_ROOT/build-tools/30.0.3" ]; then
           echo "$ANDROID_SDK_ROOT/build-tools/30.0.3" >> $GITHUB_PATH
         elif [ -d "$ANDROID_SDK_ROOT/build-tools/29.0.3" ]; then
@@ -76,6 +77,7 @@ jobs:
         echo "Listing build-tools and aidl:"
         ls -la "$ANDROID_SDK_ROOT/build-tools" || true
         find "$ANDROID_SDK_ROOT" -type f -name aidl -exec ls -la {} \; || true
+        
     - name: Install Python dependencies
       run: |
         pip install buildozer cython
