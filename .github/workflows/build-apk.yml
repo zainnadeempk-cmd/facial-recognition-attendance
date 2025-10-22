@@ -20,18 +20,37 @@ jobs:
     - name: Install system dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install -y openjdk-8-jdk
-        sudo apt-get install -y android-sdk
+        sudo apt-get install -y openjdk-8-jdk wget unzip zip squashfs-tools git python3-dev build-essential
         
-    - name: Set up Android SDK
+    - name: Install Android SDK command-line tools and build-tools
       run: |
-        export ANDROID_HOME=/usr/lib/android-sdk
-        echo "ANDROID_HOME=/usr/lib/android-sdk" >> $GITHUB_ENV
+        export ANDROID_SDK_ROOT="$HOME/Android/Sdk"
+        mkdir -p "$ANDROID_SDK_ROOT"/cmdline-tools
+        
+        # Download latest command-line tools
+        cd /tmp
+        wget -q https://dl.google.com/android/repository/commandlinetools-linux-9477386_latest.zip -O cmdline-tools.zip
+        unzip -q cmdline-tools.zip
+        
+        # Move into the expected layout
+        mkdir -p "$ANDROID_SDK_ROOT/cmdline-tools/latest"
+        mv tools/* "$ANDROID_SDK_ROOT/cmdline-tools/latest/" || true
+        
+        # Export env vars for subsequent steps
+        echo "ANDROID_SDK_ROOT=$ANDROID_SDK_ROOT" >> $GITHUB_ENV
+        echo "ANDROID_HOME=$ANDROID_SDK_ROOT" >> $GITHUB_ENV
+        echo "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin" >> $GITHUB_PATH
+        echo "$ANDROID_SDK_ROOT/platform-tools" >> $GITHUB_PATH
+        
+        # Install platform-tools, an Android platform and build-tools (contains aidl)
+        yes | "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" --sdk_root="$ANDROID_SDK_ROOT" "platform-tools" "platforms;android-29" "build-tools;29.0.3"
+        
+        # Accept licenses
+        yes | "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" --sdk_root="$ANDROID_SDK_ROOT" --licenses
         
     - name: Install Python dependencies
       run: |
-        pip install buildozer
-        pip install cython
+        pip install buildozer cython
         
     - name: Build APK
       run: |
